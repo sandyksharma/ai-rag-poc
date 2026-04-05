@@ -1,0 +1,26 @@
+[
+  {
+    "log_id": "1",
+    "message": "ORA-06502 numeric or value error occurred in procedure LOAD_CUSTOMER",
+    "service": "customer_etl",
+    "severity": "ERROR"
+  },
+  {
+    "log_id": "2",
+    "message": "Connection timeout while calling payment API",
+    "service": "payment_service",
+    "severity": "ERROR"
+  },
+  {
+    "log_id": "3",
+    "message": "Invalid number conversion in procedure UPDATE_ACCOUNT",
+    "service": "account_etl",
+    "severity": "ERROR"
+  },
+  {
+    "log_id": "4",
+    "message": "File not found while loading daily transaction file",
+    "service": "file_ingestion",
+    "severity": "ERROR"
+  }
+]

@@ -1,0 +1,5 @@
+EMBEDDING_MODEL = "all-MiniLM-L6-v2"
+
+VECTOR_COLLECTION = "application_logs"
+
+TOP_K_RESULTS = 2
