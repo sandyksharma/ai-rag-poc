@@ -23,8 +23,10 @@ At a high level, the application is a retrieval-augmented log analysis system wi
 - `orchestration/log_search_graph.py` turns the retrieval into a LangGraph workflow
 - `search/similarity_search.py` normalizes the query before searching
 - `orchestration/agent_graph.py` decides whether to use the vector search or go directly to the model
-- `api/app.py` exposes the REST endpoints and serves the browser UI
-- `api/templates/chat.html` renders the frontend and consumes the streaming responses
+- `api/app.py` exposes the FastAPI REST endpoints and backend orchestration
+- `ui-next/src/app/page.tsx` renders the React/Next.js chat interface and consumes streaming responses
+- `ui-next/src/app/page.module.css` contains the modern chat styling and thread layout
+- `api/templates/chat.html` is legacy UI content retained only for historical reference and is not the active app
 
 ### Application flow diagram
 
@@ -242,17 +244,65 @@ Endpoints include:
 
 ### 5. Front-end flow
 
-The user interface is defined in `api/templates/chat.html`.
+The active user interface is the Next.js app in `ui-next/`, with the main chat shell in `ui-next/src/app/page.tsx`.
 
-The page does the following:
+The browser app does the following:
 
-- renders the chat messages in the browser
-- sends the user’s message to `/api/agent/stream`
-- reads SSE events as the model produces chunks
+- renders the chat messages in a multi-thread conversation experience
+- sends the user’s message to the backend `/api/agent/stream` endpoint
+- reads Server-Sent Events as the model produces answer chunks
 - updates the answer incrementally without reloading the whole page
-- displays tool results, reasoning, execution metrics, and follow-up questions
-- persists chat history in browser localStorage
-- allows like/dislike feedback to trigger refined follow-up responses
+- displays tool results, reasoning traces, execution metrics, and follow-up questions in a side panel
+- persists conversation history per thread in browser localStorage
+- supports like/dislike feedback and a lightweight refinement feedback loop
+- renders richer metadata tables for retrieval results and execution timings
+
+### Next.js UI integration
+
+The project now supports a modern React/Next.js frontend alongside the Python FastAPI backend.
+
+#### Run the backend
+
+```bash
+cd /Users/shonasandy/git_repo/vector-log-ai-poc
+source .venv/bin/activate
+uvicorn api.app:app --host 0.0.0.0 --port 8000
+```
+
+The backend exposes:
+
+- `GET /api/health` for uptime checks
+- `POST /api/agent/stream` for streaming SSE responses
+- `POST /api/agent/feedback` for reaction-based refinement
+- the core retrieval and orchestration endpoints used by the UI
+
+#### Run the Next.js app
+
+```bash
+cd /Users/shonasandy/git_repo/vector-log-ai-poc/ui-next
+npm install
+npm run dev -- --hostname 0.0.0.0
+```
+
+Then open the frontend at:
+
+- `http://localhost:3000`
+
+The UI talks to the Python service at:
+
+- `http://localhost:8000`
+
+#### Why the Next.js UI matters
+
+The Next.js frontend is the live product interface for the investigation assistant. It gives the system:
+
+- a polished incident-chat workflow
+- thread-based chat history
+- live reasoning and tool result visibility
+- token and timing metrics panels
+- user feedback controls for follow-up quality tuning
+
+This separates the backend orchestration layer from the browser experience while keeping the same event-driven agent contract through the streaming API.
 
 ## File-by-file connections
 

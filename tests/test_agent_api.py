@@ -48,6 +48,22 @@ def test_health_endpoint():
     assert response.json()["status"] == "ok"
 
 
+def test_api_allows_browser_origin_for_stream_requests():
+    client = TestClient(app)
+
+    response = client.options(
+        "/api/agent/stream",
+        headers={
+            "Origin": "http://localhost:3000",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
 def test_agent_chat_endpoint(monkeypatch):
     def fake_search_logs_tool(query):
         return {
