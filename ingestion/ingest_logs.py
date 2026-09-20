@@ -1,3 +1,7 @@
+# Ingestion pipeline for the vectorized log database.
+# This module is responsible for reading raw log content, converting it to embeddings,
+# and storing the resulting vectors in ChromaDB so later queries can find similar incidents.
+
 import os
 import sys
 from utils.log_parser import load_logs
@@ -7,27 +11,29 @@ from vectordb.chroma_client import ChromaVectorDB
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
-def ingest_logs():
+def ingest_logs(reset_db=False):
+    """Read the JSON log dataset and import it into the vector database."""
 
+    # Load the raw log records from the project dataset.
     logs = load_logs("data/logs.json")
 
+    # Extract the message content so each log entry becomes a searchable document.
     messages = [log["message"] for log in logs]
     print("Log messages extracted from input data")
     print(messages)
 
+    # Create the embedding model and convert all log messages to vectors.
     embedding_model = EmbeddingModel()
-
-    # Generate embeddings for log messages
     embeddings = embedding_model.generate(messages)
     print("Embeddings generated for log messages")
     print(embeddings)
 
-    # Create unique IDs for each log entry
+    # Use each log's ID as the vector record identifier for consistent retrieval.
     ids = [log["log_id"] for log in logs]
     print("Unique IDs created for log entries")
     print(ids)
 
-    # Prepare metadata for each log entry
+    # Store metadata that helps explain what service and severity each matching log belongs to.
     metadata = [
         {
             "service": log["service"],
@@ -38,10 +44,13 @@ def ingest_logs():
     print("Metadata prepared for log entries")
     print(metadata)
 
-    # Initialize Vector DB client and insert log data
+    # Initialize the ChromaDB wrapper and insert the records.
     vectordb = ChromaVectorDB()
 
-    # Insert log data into Vector DB
+    if reset_db:
+        print("Resetting Vector DB before inserting logs.")
+        vectordb.reset()
+
     vectordb.insert(
         ids=ids,
         documents=messages,
@@ -53,10 +62,11 @@ def ingest_logs():
 
 
 def ensure_logs_ingested():
+    """Ensure the local database contains log data; reset if it already exists."""
 
     vectordb = ChromaVectorDB()
-    
-    # Clear existing data in the collection for fresh ingestion
+
+    # If data already exists, start from a clean collection before re-importing.
     if vectordb.count() > 0:
         print("Vector DB already contains ingested logs. Resetting Collection.")
         vectordb.reset()

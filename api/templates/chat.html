@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log AI Assistant</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        background: #0f172a;
+        color: #e2e8f0;
+      }
+      .container {
+        max-width: 1200px;
+        margin: 40px auto;
+        background: #111827;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+      }
+      h1 {
+        margin-top: 0;
+      }
+      #chat {
+        min-height: 360px;
+        background: #020817;
+        border: 1px solid #374151;
+        border-radius: 12px;
+        padding: 16px;
+        overflow-y: auto;
+        margin-bottom: 16px;
+      }
+      .msg {
+        margin: 12px 0;
+        padding: 12px 16px;
+        border-radius: 10px;
+        max-width: 90%;
+        white-space: pre-wrap;
+      }
+      .user {
+        background: #1d4ed8;
+        margin-left: auto;
+      }
+      .assistant {
+        background: #1f2937;
+      }
+      .assistant-message-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+      .live-metrics-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        align-self: flex-start;
+        border: 1px solid rgba(148, 163, 184, 0.5);
+        background: rgba(15, 118, 110, 0.2);
+        color: #ccfbf1;
+        font-size: 0.72rem;
+        border-radius: 999px;
+        padding: 4px 8px;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      }
+      .tool {
+        background: #14532d;
+        font-size: 0.9em;
+      }
+      .reasoning {
+        background: #312e81;
+        font-size: 0.9em;
+      }
+      .follow-up {
+        background: #78350f;
+        font-size: 0.9em;
+      }
+      .reaction-row {
+        display: flex;
+        gap: 8px;
+        margin-top: 12px;
+        justify-content: flex-end;
+        align-items: center;
+        flex-wrap: wrap;
+      }
+      .reaction-button {
+        background: transparent;
+        border: 1px solid #475569;
+        color: #e2e8f0;
+        border-radius: 999px;
+        padding: 6px 12px;
+        cursor: pointer;
+        font-size: 0.85em;
+      }
+      .reaction-button.active {
+        border-color: #fbbf24;
+        background: rgba(251, 191, 36, 0.14);
+        color: #fef3c7;
+      }
+      .feedback-box {
+        display: none;
+        width: 100%;
+        margin-top: 8px;
+      }
+      .feedback-box textarea {
+        width: 100%;
+        min-height: 68px;
+        resize: vertical;
+        border-radius: 10px;
+        border: 1px solid #475569;
+        background: #0f172a;
+        color: white;
+        padding: 10px 12px;
+      }
+      .feedback-box button {
+        margin-top: 8px;
+        padding: 8px 12px;
+      }
+      .followup-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding-left: 0;
+        list-style: none;
+      }
+      .followup-button {
+        background: #78350f;
+        color: #fef3c7;
+        border: 1px solid #f59e0b;
+        border-radius: 999px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-size: 0.85em;
+      }
+      form {
+        display: flex;
+        gap: 12px;
+      }
+      input {
+        flex: 1;
+        padding: 12px;
+        border-radius: 10px;
+        border: 1px solid #475569;
+        background: #0f172a;
+        color: white;
+      }
+      button {
+        padding: 12px 18px;
+        border: none;
+        border-radius: 10px;
+        background: #22c55e;
+        color: black;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .panel {
+        background: #020817;
+        border: 1px solid #374151;
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .panel h3 {
+        margin-top: 0;
+      }
+      .panel-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+      }
+      .status {
+        color: #a5f3fc;
+        font-size: 0.9em;
+        margin-bottom: 12px;
+      }
+      .mini-card {
+        background: #0b1220;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 14px;
+      }
+      .role-stack {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .role-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        font-size: 0.75em;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .role-badge.planner { background: #1d4ed8; color: #dbeafe; }
+      .role-badge.analyst { background: #0f766e; color: #ccfbf1; }
+      .role-badge.reporter { background: #a16207; color: #fef3c7; }
+      .history-meta {
+        color: #cbd5e1;
+        font-size: 0.85em;
+        margin-top: 8px;
+      }
+      .clear-btn {
+        background: transparent;
+        color: #f8fafc;
+        border: 1px solid #475569;
+        border-radius: 8px;
+        padding: 6px 10px;
+        font-size: 0.8em;
+        cursor: pointer;
+      }
+      ul {
+        padding-left: 18px;
+      }
+      .tool-card {
+        background: #0b1220;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-bottom: 12px;
+      }
+      .tool-card table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+      }
+      .tool-card th, .tool-card td {
+        padding: 6px 4px;
+        font-size: 0.9em;
+        border-bottom: 1px solid #1f2937;
+        text-align: left;
+        vertical-align: top;
+      }
+      .tool-card th {
+        color: #cbd5e1;
+        width: 35%;
+      }
+      .metrics-card {
+        background: #0b1220;
+        border: 1px solid #334155;
+        border-radius: 10px;
+        padding: 10px 12px;
+        margin-top: 12px;
+      }
+      .metrics-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        font-size: 0.85em;
+      }
+      .metrics-grid strong {
+        color: #cbd5e1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Log AI Assistant</h1>
+      <div class="status">Connected to local Ollama + vector log search flow</div>
+      <div class="layout">
+        <div>
+          <div id="chat"></div>
+          <div id="reactionBar" class="reaction-row" style="display:none;">
+            <button type="button" class="reaction-button" data-reaction="like">👍 Like</button>
+            <button type="button" class="reaction-button" data-reaction="dislike">👎 Dislike</button>
+          </div>
+          <div id="feedbackBox" class="feedback-box">
+            <textarea id="feedbackInput" placeholder="Optional: tell us why this answer was not helpful..."></textarea>
+            <button type="button" id="sendFeedbackBtn">Send feedback</button>
+          </div>
+          <form id="chatForm">
+            <input id="query" type="text" placeholder="Ask about a timeout, outage, exception, or database error..." />
+            <button type="submit">Send</button>
+          </form>
+        </div>
+        <aside class="panel">
+          <div class="panel-header">
+            <h3>Agent roles</h3>
+            <button type="button" id="clearHistoryBtn" class="clear-btn">Clear history</button>
+          </div>
+          <div class="mini-card">
+            <div class="role-stack">
+              <span class="role-badge planner">Planner</span>
+              <span class="role-badge analyst">Analyst</span>
+              <span class="role-badge reporter">Reporter</span>
+            </div>
+            <div id="historyMeta" class="history-meta">History: 1 message</div>
+          </div>
+          <h3>Tool Results</h3>
+          <div id="toolPanel">No tool calls yet.</div>
+          <h3 style="margin-top: 20px;">Reasoning</h3>
+          <div id="reasoningPanel">No reasoning yet.</div>
+          <h3 style="margin-top: 20px;">Execution Metrics</h3>
+          <div id="metricsPanel">No timing metrics yet.</div>
+          <h3 style="margin-top: 20px;">Follow-up Questions</h3>
+          <ul id="followUpPanel"><li>None yet.</li></ul>
+        </aside>
+      </div>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'log-ai-chat-history';
+      const chat = document.getElementById('chat');
+      const form = document.getElementById('chatForm');
+      const input = document.getElementById('query');
+      const toolPanel = document.getElementById('toolPanel');
+      const reasoningPanel = document.getElementById('reasoningPanel');
+      const metricsPanel = document.getElementById('metricsPanel');
+      const followUpPanel = document.getElementById('followUpPanel');
+      const historyMeta = document.getElementById('historyMeta');
+      const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+      const reactionBar = document.getElementById('reactionBar');
+      const feedbackBox = document.getElementById('feedbackBox');
+      const feedbackInput = document.getElementById('feedbackInput');
+      const sendFeedbackBtn = document.getElementById('sendFeedbackBtn');
+      let latestAssistantText = '';
+      let latestQuery = '';
+      let activeAssistantMessage = null;
+      const metricsState = {
+        timings: {},
+        input_tokens: null,
+        output_tokens: null,
+        total_tokens: null,
+      };
+
+      const state = {
+        messages: JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
+      };
+
+      function saveMessages() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state.messages));
+        const count = state.messages.length;
+        historyMeta.textContent = `History: ${count} message${count === 1 ? '' : 's'}`;
+      }
+
+      function renderConversation() {
+        chat.innerHTML = '';
+        state.messages.forEach((message) => {
+          const div = document.createElement('div');
+          div.className = `msg ${message.role === 'user' ? 'user' : 'assistant'}`;
+          div.textContent = message.text;
+          chat.appendChild(div);
+        });
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function addMessage(role, text, cssClass = '') {
+        const newMessage = { role, text, cssClass, timestamp: Date.now() };
+        state.messages.push(newMessage);
+        saveMessages();
+        const div = document.createElement('div');
+        div.className = `msg ${cssClass || role}`;
+        div.textContent = text;
+        chat.appendChild(div);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      function upsertAssistantStreamMessage(text) {
+        if (activeAssistantMessage) {
+          activeAssistantMessage.textContent = text;
+          return activeAssistantMessage;
+        }
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'assistant-message-wrap';
+        const msg = document.createElement('div');
+        msg.className = 'msg assistant';
+        msg.dataset.liveMessage = 'true';
+        msg.textContent = text;
+        wrapper.appendChild(msg);
+        chat.appendChild(wrapper);
+        activeAssistantMessage = msg;
+        chat.scrollTop = chat.scrollHeight;
+        return msg;
+      }
+
+      function clearHistory() {
+        state.messages = [];
+        saveMessages();
+        chat.innerHTML = '';
+        addMessage('assistant', 'Conversation cleared. I can help investigate the next log issue.', 'assistant');
+      }
+
+      function setToolPanel(data) {
+        if (!data || !data.length) {
+          toolPanel.textContent = 'No tool calls yet.';
+          return;
+        }
+        toolPanel.innerHTML = data.map((tool) => `
+          <div class="tool-card">
+            <strong>Match ${tool.rank}</strong>
+            <table>
+              <tr><th>Document</th><td>${(tool.document || '').replace(/</g, '&lt;')}</td></tr>
+              <tr><th>Service</th><td>${tool.service || 'unknown'}</td></tr>
+              <tr><th>Severity</th><td>${tool.severity || 'unknown'}</td></tr>
+              <tr><th>Distance</th><td>${tool.distance !== null && tool.distance !== undefined ? tool.distance.toFixed(3) : 'n/a'}</td></tr>
+            </table>
+          </div>
+        `).join('');
+      }
+
+      function setReasoning(text) {
+        reasoningPanel.textContent = text || 'No reasoning yet.';
+      }
+
+      function resetMetrics() {
+        Object.keys(metricsState).forEach((key) => {
+          if (key === 'timings') {
+            metricsState[key] = {};
+          } else {
+            metricsState[key] = null;
+          }
+        });
+        metricsPanel.textContent = 'No timing metrics yet.';
+      }
+
+      function getLiveMetricsBadgeText() {
+        const { timings, input_tokens, output_tokens, total_tokens } = metricsState;
+        const badges = [];
+
+        if (timings && Object.keys(timings).length) {
+          const totalMs = Number(timings.total_agent_time ?? Object.values(timings).reduce((sum, value) => sum + Number(value || 0), 0));
+          if (Number.isFinite(totalMs)) {
+            badges.push(`${totalMs.toFixed(0)}ms`);
+          }
+        }
+
+        if (input_tokens !== null && input_tokens !== undefined) {
+          badges.push(`${input_tokens} in`);
+        }
+        if (output_tokens !== null && output_tokens !== undefined) {
+          badges.push(`${output_tokens} out`);
+        }
+        if (total_tokens !== null && total_tokens !== undefined) {
+          badges.push(`${total_tokens} total`);
+        }
+
+        return badges.length ? badges.join(' • ') : '';
+      }
+
+      function updateLiveMetricsBadge() {
+        const activeAssistant = chat.querySelector('.assistant[data-live-message="true"]');
+        if (!activeAssistant) return;
+
+        let badge = activeAssistant.querySelector('.live-metrics-badge');
+        const text = getLiveMetricsBadgeText();
+
+        if (!text) {
+          if (badge) badge.remove();
+          return;
+        }
+
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.className = 'live-metrics-badge';
+          activeAssistant.appendChild(badge);
+        }
+
+        badge.textContent = `⚡ ${text}`;
+      }
+
+      function setMetrics(payload) {
+        if (payload && payload.timings) {
+          metricsState.timings = { ...metricsState.timings, ...payload.timings };
+        }
+        if (payload && payload.input_tokens !== undefined) {
+          metricsState.input_tokens = payload.input_tokens;
+        }
+        if (payload && payload.output_tokens !== undefined) {
+          metricsState.output_tokens = payload.output_tokens;
+        }
+        if (payload && payload.total_tokens !== undefined) {
+          metricsState.total_tokens = payload.total_tokens;
+        }
+
+        const { timings, input_tokens, output_tokens, total_tokens } = metricsState;
+        const timingEntries = Object.entries(timings).map(([key, value]) => `
+          <div><strong>${key.replace(/_/g, ' ')}</strong></div>
+          <div>${Number(value).toFixed(1)} ms</div>
+        `).join('');
+
+        const tokenEntries = [
+          input_tokens !== null ? `<div><strong>input tokens</strong></div><div>${input_tokens}</div>` : '',
+          output_tokens !== null ? `<div><strong>output tokens</strong></div><div>${output_tokens}</div>` : '',
+          total_tokens !== null ? `<div><strong>total tokens</strong></div><div>${total_tokens}</div>` : '',
+        ].filter(Boolean).join('');
+
+        const html = `
+          <div class="metrics-card">
+            <div class="metrics-grid">${timingEntries || '<div><strong>timings</strong></div><div>n/a</div>'}</div>
+            ${tokenEntries ? `<div class="metrics-grid" style="margin-top: 10px;">${tokenEntries}</div>` : ''}
+          </div>
+        `;
+        metricsPanel.innerHTML = html;
+        updateLiveMetricsBadge();
+      }
+
+      function setFollowUps(items) {
+        if (!items || !items.length) {
+          followUpPanel.innerHTML = '<li>None yet.</li>';
+          return;
+        }
+        followUpPanel.className = 'followup-list';
+        followUpPanel.innerHTML = items.map((item) => `
+          <li><button type="button" class="followup-button" data-query="${item.replace(/"/g, '&quot;')}">${item}</button></li>
+        `).join('');
+
+        followUpPanel.querySelectorAll('.followup-button').forEach((button) => {
+          button.addEventListener('click', async () => {
+            const nextQuery = button.dataset.query;
+            if (!nextQuery) return;
+            const suggestionInput = document.getElementById('query');
+            suggestionInput.value = nextQuery;
+            form.requestSubmit();
+          });
+        });
+      }
+
+      function showReactionBar(enabled = false) {
+        reactionBar.style.display = enabled ? 'flex' : 'none';
+        if (!enabled) {
+          feedbackBox.style.display = 'none';
+          feedbackInput.value = '';
+        }
+      }
+
+      function showFeedbackBox(show = false) {
+        feedbackBox.style.display = show ? 'block' : 'none';
+      }
+
+      async function submitFeedback(reaction, overrideMessage = '') {
+        if (!latestQuery) return;
+        reactionBar.querySelectorAll('.reaction-button').forEach((button) => {
+          button.classList.toggle('active', button.dataset.reaction === reaction);
+        });
+
+        const message = overrideMessage || (reaction === 'dislike' ? 'The answer was not useful enough.' : 'Helpful response.');
+
+        try {
+          const response = await fetch('/api/agent/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: latestQuery,
+              reaction,
+              message
+            })
+          });
+          const payload = await response.json();
+          if (payload.refined_answer) {
+            addMessage('assistant', `Refined response (${reaction}): ${payload.refined_answer}`, 'assistant');
+            const followUp = payload.follow_up_questions || [];
+            setFollowUps(followUp);
+          }
+        } catch (error) {
+          console.error('Feedback request failed', error);
+        }
+      }
+
+      if (state.messages.length) {
+        renderConversation();
+      } else {
+        addMessage('assistant', 'Hi! I can help investigate log issues using a local Ollama model and the project’s vector search.', 'assistant');
+      }
+      saveMessages();
+
+      clearHistoryBtn.addEventListener('click', clearHistory);
+
+      reactionBar.querySelectorAll('.reaction-button').forEach((button) => {
+        button.addEventListener('click', () => {
+          const reaction = button.dataset.reaction;
+          if (reaction === 'dislike') {
+            showFeedbackBox(true);
+            feedbackInput.focus();
+            return;
+          }
+          submitFeedback(reaction);
+        });
+      });
+
+      sendFeedbackBtn.addEventListener('click', () => {
+        const message = feedbackInput.value.trim();
+        showFeedbackBox(false);
+        submitFeedback('dislike', message);
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const query = input.value.trim();
+        if (!query) return;
+
+        latestQuery = query;
+        resetMetrics();
+        showReactionBar(false);
+        activeAssistantMessage = null;
+        addMessage('user', query, 'user');
+        input.value = '';
+        toolPanel.textContent = 'Running tool calls...';
+        reasoningPanel.textContent = 'Reasoning...';
+        followUpPanel.innerHTML = '<li>Waiting for follow-up suggestions...</li>';
+
+        try {
+          const response = await fetch('/api/agent/stream', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query, top_k: 5 })
+          });
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let assistantBuffer = '';
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n\n');
+            for (const line of lines) {
+              if (!line.startsWith('data: ')) continue;
+              const payload = line.replace('data: ', '').trim();
+              if (!payload) continue;
+              try {
+                const event = JSON.parse(payload);
+                if (event.type === 'planning') {
+                  const plan = event.plan || {};
+                  const planner = plan.planner || {};
+                  const steps = Array.isArray(plan.steps) ? plan.steps.join(' -> ') : 'search_logs -> analyze_results -> report_findings';
+                  const planText = `Planner role: ${planner.role || 'planner'}. Steps: ${steps}`;
+                  setReasoning(planText);
+                }
+                if (event.type === 'reasoning') {
+                  setReasoning(event.text);
+                }
+                if (event.type === 'tool_calls') {
+                  const calls = event.tool_calls || [];
+                  const maybeSimple = calls.map((call) => ({
+                    tool: call.tool,
+                    query: call.query,
+                    matched_results: call.matched_results,
+                  }));
+                  setToolPanel(maybeSimple);
+                }
+                if (event.type === 'tool_results') {
+                  setToolPanel(event.tool_results || []);
+                }
+                if (event.type === 'timings') {
+                  setMetrics({ timings: event.timings || {} });
+                }
+                if (event.type === 'metrics') {
+                  setMetrics(event.metrics || {});
+                }
+                if (event.type === 'answer') {
+                  assistantBuffer += event.text;
+                  latestAssistantText = assistantBuffer;
+                  const streamBubble = upsertAssistantStreamMessage(assistantBuffer);
+                  streamBubble.dataset.liveMessage = 'true';
+                  updateLiveMetricsBadge();
+                  showReactionBar(true);
+                }
+                if (event.type === 'follow_up' || event.type === 'follow_up_questions') {
+                  setFollowUps(event.questions || event.follow_up_questions || []);
+                }
+              } catch (error) {
+                console.error('Parse error', error);
+              }
+            }
+          }
+          saveMessages();
+        } catch (error) {
+          addMessage('assistant', 'The agent is unavailable right now. Please check the backend service and Ollama.', 'assistant');
+        }
+      });
+    </script>
+  </body>
+</html>

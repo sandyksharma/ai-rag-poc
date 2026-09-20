@@ -1,3 +1,6 @@
+# Legacy Streamlit prototype for searching the log vector database.
+# This UI is useful for quick manual testing before the more advanced FastAPI + chat UI was added.
+
 import sys
 import os
 
@@ -10,7 +13,7 @@ from search.similarity_search import find_similar_logs
 
 @st.cache_resource
 def initialize_vector_store():
-
+    # Ensure the database is available before the user starts searching.
     return ensure_logs_ingested()
 
 
@@ -29,9 +32,7 @@ query = st.text_input("Enter error message or failure description")
 threshold = 1.8
 
 if st.button("Search"):
-
     if query:
-
         st.write(query)
         results = find_similar_logs(query)
 
@@ -43,7 +44,6 @@ if st.button("Search"):
         matches_found = False
 
         for i in range(len(docs)):
-
             if distances[i] < threshold:
                 matches_found = True
                 st.write("Failure:", docs[i])

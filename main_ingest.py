@@ -1,3 +1,7 @@
+# CLI entry point for rebuilding the local vector log knowledge base.
+# This script is useful when you want to re-index the sample logs after changing the dataset,
+# the embedding model, or the retrieval strategy.
+
 import argparse
 
 from ingestion.ingest_logs import ingest_logs

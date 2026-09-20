@@ -1,0 +1,11 @@
+.coverage
+.git
+.venv
+.vscode
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+chroma_db/
+temp_chroma_test/
